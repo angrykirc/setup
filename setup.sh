@@ -46,6 +46,10 @@ if ! [[ -f "${SSH_ED25519}" ]] && [[ -f "${SSH_RSA}" ]]; then
 	ssh-keygen -t ed25519 -q -P ""
 	echo -e "${GC}The generated SSH key for this machine is:${CC}"
 	cat ${SSH_ED25519}
+	if which xclip > /dev/null; then
+		cat ${SSH_ED25519} | xclip -selection clipboard
+	fi
 else
 	echo -e "${RC}This machine already has an SSH key generated${CC}"
 fi
+

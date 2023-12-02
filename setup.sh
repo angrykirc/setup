@@ -22,7 +22,7 @@ if (( $EUID != 0 )); then
 fi
 
 # Parse arguments
-# Valid arguments are: all, common, golang, docker, sshkey
+# Valid arguments are: all, common, golang, docker, sshkey, reinstall
 # Note that for bash, 0 is true, <0> is false
 for arg in "$@"
 do
@@ -43,15 +43,14 @@ apt-get update -yqq
 # Install common utilities
 if ! [ -z $INSTALL_common ]; then
 	echoc 33 "[~] Installing common"
-	if [ `dpkg -s git terminator neovim curl 2>/dev/null | grep Status | wc -l` -ge "4" ] && [ -z $INSTALL_reinstall ]; then
+	if [ `dpkg -s git terminator neovim curl python3-pip 2>/dev/null | grep Status | wc -l` -ge "5" ] && [ -z $INSTALL_reinstall ]; then
 		echoc 33 "[~] common is already installed, skipping."
 	else
 		cerr
-		serr `apt-get install -yq git terminator neovim curl`
-		serr `apt-get install -yq wireguard`
-		serr `apt-get install -yq python3-pip`
-		# Install c++ compiler and stuff
-		serr `apt-get install -yq cmake gcc`
+		serr `apt-get install --reinstall -yq git terminator neovim curl`
+		serr `apt-get install --reinstall -yq python3-pip`
+		# Install c++ compiler and stuff?
+		# serr `apt-get install -yq cmake gcc`
 		if [ -z $failure ]; then
 			echoc 31 "[!] One or more commands failed, unable to install: common"
 		else
@@ -122,10 +121,12 @@ if ! [ -z $INSTALL_docker ]; then
 		cerr
 		serr `apt-get install -yq ca-certificates curl gnupg`
 		serr `install -m 0755 -d /etc/apt/keyrings`
-		serr `curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg`
+		serr `curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor --yes -o /etc/apt/keyrings/docker.gpg`
 		serr `chmod a+r /etc/apt/keyrings/docker.gpg`
 		echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$UBUNTU_CODENAME") stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
 		apt-get update -yq
+		# This will prune/delete all containers (!)
+		serr `apt-get purge -yq docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin`
 		serr `apt-get install -yq docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin`
 		if [ -z $failure ]; then
 			echoc 31 "[!] Docker installation failed, please check the log for details."
